@@ -1,54 +1,62 @@
 /*****************************************************************/
-/*   Grafo c/ matriz de adjacencias | PROG2 | MIEEC | 2017/18    */      
+/*   Grafo c/ lista de adjacencias | PROG2 | MIEEC | 2017/18     */      
 /*****************************************************************/
 
 #ifndef _GRAFO_H_
 #define _GRAFO_H_
 
-#include "vetor.h"
+typedef enum {NAODIRECIONADO=0,DIGRAFO} tipo_grafo;
 
-/* grafo e' uma matriz de adjacencias.
-   tamanho da matriz e' o numero de vertices no grafo */
+/* no da lista de adjacencias */
+typedef struct _lista_no
+{
+    int vertice;                /* indice do array de listas de adjacencias */
+    struct _lista_no *proximo;  /* apontador para proximo no' */
+} lista_no;
+
+/* lista de adjacencias */
 typedef struct
 {
-    int tamanho;        /* numero de vertices */
-    int **adjacencias;  /* matriz de adjacencias */
+    int tamanho;           /* numero de nos na lista */
+    lista_no *inicio;      /* apontador para primeiro no' da lista */
+} lista_adj;
+
+/* grafo e' um array de listas de adjacencias.
+   tamanho do array e' o numero de vertices no grafo */
+typedef struct
+{
+    tipo_grafo tipo;        /* digrafo ou nao direcionado */
+    int tamanho;            /* numero de vertices */
+    lista_adj *adjacencias; /* array de listas de adjacencias */
 } grafo;
 
 /* cria grafo com n vertices */
-grafo* grafo_novo(int n);
+grafo* grafo_novo(int n, tipo_grafo tipo);
 
 /* apaga grafo e liberta memoria */
 void grafo_apaga(grafo* g);
 
 /* adiciona uma aresta ao grafo*/
-int grafo_adiciona(grafo *g, int origem, int dest);
+void grafo_adiciona(grafo *g, int origem, int dest);
 
 /* remove uma aresta do grafo*/
-int grafo_remove(grafo *g, int origem, int dest);
+void grafo_remove(grafo *g, int origem, int dest);
 
 /* verifica se existe uma aresta entre os vertices origem e dest */
 int grafo_aresta(grafo *g, int origem, int dest);
 
-/* cria novo grafo dada uma sequencia de pares de adjacencias e o numero de arestas */
-grafo* grafo_deLista(int* adjacencias, int n_arestas);
-
-/* cria vetor com os vertices de destino com origem i */
-vetor* grafo_arestasSaida(grafo* g, int i);
-
-/* cria vetor com os vertices de origem com destino i */
-vetor* grafo_arestasEntrada(grafo* g, int i);
-
-/* verifica se o grafo g e' completo */
-int grafo_completo(grafo* g);
-
-/* verifica se o vertice i do grafo g e' uma celebridade */
-int grafo_eCelebridade(grafo* g, int i);
-
-/* verifica se o grafo g tem pelo menos uma celebridade */
-int grafo_temCelebridade(grafo* g);
-
-/* imprime as adjacencias do grafo */
+/* imprime as listas de adjacencias do grafo */
 void grafo_imprime(grafo* g);
+
+/* retorna caminho entre origem e dest usando depth-first search (DFS)
+   n guarda o tamanho do caminho
+   _nao garante_ caminho mais curto */
+int* grafo_dfs(grafo *g, int inicio, int fim, int *n);
+
+/* retorna caminho entre origem e dest usando breadth-first search (BFS)
+   n guarda o tamanho do caminho
+   _garante_ caminho mais curto */
+int* grafo_bfs(grafo *g, int inicio, int fim, int *n);
+
 
 #endif

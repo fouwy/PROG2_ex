@@ -1,25 +1,40 @@
 /*****************************************************************/
-/*   Grafo c/ matriz de adjacencias | PROG2 | MIEEC | 2017/18    */      
+/*   Grafo c/ lista de adjacencias | PROG2 | MIEEC | 2017/18     */
 /*****************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include "grafo.h"
 
-/* cria grafo com n vertices */
-grafo* grafo_novo(int n)
+/* cria no da lista de adjacencias */
+lista_no* cria_no(int v)
 {
-    int v;
-    grafo* g;
-    
-    g = (grafo*)malloc(sizeof(grafo));
+    lista_no* novo = (lista_no*)malloc(sizeof(lista_no));
+    if(!novo)
+        return NULL;
+
+    novo->vertice = v;
+    novo->proximo = NULL;
+
+    return novo;
+}
+
+/* cria grafo com n vertices */
+grafo* grafo_novo(int n, tipo_grafo tipo)
+{
+    grafo* g = (grafo*)malloc(sizeof(grafo));
+    if(g == NULL)
+        return NULL;
+
     g->tamanho = n;
+    g->tipo = tipo;
 
     /* cria array de listas de adjacencias */
-    g->adjacencias = (int**)malloc(n * sizeof(int*));
-    for(v=0; v<n; v++)
+    g->adjacencias = (lista_adj*)calloc(n, sizeof(lista_adj));
+    if(g->adjacencias == NULL)
     {
-        g->adjacencias[v] = (int*)calloc(n, sizeof(int));
+        free(g);
+        return NULL;
     }
 
     return g;
@@ -35,229 +50,263 @@ void grafo_apaga(grafo* g)
     {
         int v;
         for (v = 0; v < g->tamanho; v++)
-            free(g->adjacencias[v]);
+        {
+            while (g->adjacencias[v].inicio)
+            {
+                lista_no* aux = g->adjacencias[v].inicio;
+                g->adjacencias[v].inicio = g->adjacencias[v].inicio->proximo;
+                free(aux);
+            }
+        }
         free(g->adjacencias);
     }
     free(g);
 }
 
-/* adiciona no grafo g uma aresta entre os vertices origem e destino
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 0 se a aresta ja existir e 1 se foi adicionada */
-int grafo_adiciona(grafo *g, int origem, int dest)
-{   
-    if (g == NULL)   return -1;
-    if (origem > g->tamanho || dest > g->tamanho || origem == dest)	return -1;
-
-	if (g->adjacencias[origem][dest]==1) {
-		return 0;
-	}
-	else {
-		g->adjacencias[origem][dest] = 1;
-		return 1;
-	}
-
-	return -1;
-}
-
-/* remove do grafo g a aresta entre os vertices origem e destino
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 0 se a aresta nao existir e 1 se foi removida */
-int grafo_remove(grafo *g, int origem, int dest)
+/* adiciona uma aresta ao grafo*/
+void grafo_adiciona(grafo *g, int origem, int dest)
 {
-	if (g == NULL)   return -1;
-    if (origem > g->tamanho || dest > g->tamanho || origem == dest)	return -1;
+    lista_no* novo;
 
-	if (g->adjacencias[origem][dest] == 0) {
-		return 0;
-	}
-	else {
-		g->adjacencias[origem][dest] = 0;
-		return 1;
-	}
-
-	return -1;
-}
-
-/* testa no grafo g a aresta entre os vertices origem e destino
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 0 se a aresta nao existir e 1 se existir */
-int grafo_aresta(grafo *g, int origem, int dest)
-{	
-	if (g == NULL)   return -1;
-    if (origem > g->tamanho || dest > g->tamanho || origem == dest)	return -1;
-
-	if (g->adjacencias[origem][dest] == 0) {
-		return 0;
-	}
-
-	else if (g->adjacencias[origem][dest] == 1); {
-		return 1;
-	}
-
-    return -1;
-}
-
-/* cria um novo grafo com base numa lista de adjacencias
-   parametro adjacencies e' um array de inteiros, representado
-   um numero n_edges de arestas.
-   retorna um apontador para o grafo criado */
-grafo* grafo_deLista(int* adjacencias, int n_arestas)
-{
-	grafo *g;
-	
-	int i;
-	int max = 0;
-	
-	// procura o maximo do vetor
-	for(i=0; i< n_arestas * 2; i++) {
-		if(adjacencias[i] > max) {
-			max = adjacencias[i];
-		}
-	}
-
-	g = grafo_novo(max+1);
-
-	if (g == NULL) {
-		return NULL;
-	}
-	
-	for (i=0; i<n_arestas * 2; i+=2) {
-		grafo_adiciona(g, adjacencias[i], adjacencias[i+1]);
-	}
-
-    return g;
-}
-
-/* cria e retorna um vetor de inteiros contendo os vertices
-   de destino de todas as arestas com origem em i */
-vetor* grafo_arestasSaida(grafo* g, int i)
-{
-	int size_grafo, j;
-	vetor *v;
-
-	size_grafo = g->tamanho;
-	v = vetor_novo();
-
-	if(v == NULL) {
-		return NULL;
-	}
-
-	if(g==NULL) {
-		return NULL;
-	}
-
-	if(i > g->tamanho) {
-		return NULL;
-	}
-
-	// pesquisa a linha do elemento i
-	for(j=0; j<size_grafo; j++) {
-		if(j == i)	continue;
-
-		// se existir aresta, insere no final do vetor
-		if(grafo_aresta(g, i, j) == 1) {
-			vetor_insere(v, j, -1);
-		}
-	}
-
-	return v;
-}
-
-/* cria e retorna um vetor de inteiros contendo os vertices
-   de origem de todas as arestas com destino a i */
-vetor* grafo_arestasEntrada(grafo* g, int i)
-{
-	int size_grafo, j;
-	vetor *v;
-
-	size_grafo = g->tamanho;
-	v = vetor_novo();
-
-	if(v == NULL) {
-		return NULL;
-	}
-
-	if(g==NULL) {
-		return NULL;
-	}
-
-	if(i > g->tamanho) {
-		return NULL;
-	}
-
-	// pesquisa a coluna do elemento i
-	for(j=0; j<size_grafo; j++) {
-		if(j == i)	continue;
-
-		// se existir aresta, insere no final do vetor
-		if(grafo_aresta(g, j, i) == 1) {
-			vetor_insere(v, j, -1);
-		}
-	}
-
-	return v;
-}
-
-/* verifica se o grafo g e' completo
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 1 se o grafo for completo e 0 se nao o for */
-int grafo_completo(grafo* g)
-{	
-	int i, j, vertices;
-	if(g==NULL) return -1;
-
-	vertices = grafo->tamanho;
-
-	for(i=0; i<vertices; i++) {
-		for(j=0; j<vertices; j++) {
-			if(i == j) continue;
-			if(grafo_aresta(g, i, j) == false) {
-				return 0;
-			}
-		}
-	}
-
-    return 1;
-}
-
-/* verifica se o vertice i do grafo g e' uma celebridade
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 1 se o vertice for uma celebridade e 0 se nao o for */
-int grafo_eCelebridade(grafo* g, int i)
-{
-    /* alinea 1.5 */ 
-
-    return 0;
-}
-
-/* verifica se o grafo g tem pelo menos uma celebridade
-   retorna -1 em caso de erro (parametros invalidos)
-   retorna 1 se existir uma celebridade e 0 se nao existir */
-int grafo_temCelebridade(grafo* g)
-{
-    /* alinea 1.5 */ 
-
-    return 0;
-}
-
-/* imprime as adjacencias do grafo */
-void grafo_imprime(grafo* g)
-{
-    int i, j;
-
-    if (g == NULL)
+    if (g == NULL || grafo_aresta(g, origem, dest))
         return;
 
+    /* adiciona uma aresta de origem para dest na lista de adjacencias */
+    novo = cria_no(dest);
+    novo->proximo = g->adjacencias[origem].inicio;
+    g->adjacencias[origem].inicio = novo;
+    g->adjacencias[origem].tamanho++;
+
+    if(g->tipo == NAODIRECIONADO)
+    {
+        /* adiciona tambem aresta de dest para origem */
+        novo = cria_no(origem);
+        novo->proximo = g->adjacencias[dest].inicio;
+        g->adjacencias[dest].inicio = novo;
+        g->adjacencias[dest].tamanho++;
+    }
+}
+
+/* remove uma aresta do grafo*/
+void grafo_remove(grafo *g, int origem, int dest)
+{
+    lista_no *aux, *prev;
+
+    if (g == NULL || g->adjacencias[origem].inicio == NULL)
+        return;
+
+    aux = g->adjacencias[origem].inicio;
+    /* caso especial: primeiro no' da lista */
+    if(aux->vertice == dest)
+    {
+        g->adjacencias[origem].inicio = aux->proximo;
+        free(aux);
+    }
+    else
+    {
+        prev = aux;
+        aux = aux->proximo;
+        while(aux != NULL)
+        {
+            if(aux->vertice == dest)
+            {
+                prev->proximo = aux->proximo;
+                free(aux);
+                break;
+            }
+            prev = aux;
+            aux = aux->proximo;
+        }
+    }
+
+    if(g->tipo == NAODIRECIONADO)
+    {
+        /* remove tambem aresta de dest para origem */
+        /* caso especial: primeiro no' da lista */
+        aux = g->adjacencias[dest].inicio;
+        if(aux->vertice == origem)
+        {
+            g->adjacencias[dest].inicio = aux->proximo;
+            free(aux);
+        }
+        else
+        {
+            prev = aux;
+            aux = aux->proximo;
+            while(aux != NULL)
+            {
+                if(aux->vertice == origem)
+                {
+                    prev->proximo = aux->proximo;
+                    free(aux);
+                    break;
+                }
+                prev = aux;
+                aux = aux->proximo;
+            }
+        }
+    }
+
+}
+
+/* verifica se existe uma aresta entre os vertices origem e dest */
+int grafo_aresta(grafo *g, int origem, int dest)
+{
+    if (g == NULL)
+        return 0;
+
+    lista_no* aux = g->adjacencias[origem].inicio;
+    while (aux)
+    {
+        if(aux->vertice == dest)
+            return 1;
+        aux = aux->proximo;
+    }
+    return 0;
+}
+
+/* imprime as listas de adjacencias do grafo */
+void grafo_imprime(grafo* g)
+{
+    int i;
     for (i = 0; i < g->tamanho; i++)
     {
+        lista_no* aux = g->adjacencias[i].inicio;
         printf("%d: ", i);
-        for(j = 0; j < g->tamanho; j++)
+        if(aux)
         {
-            if(g->adjacencias[i][j] != 0)
-                printf("%d ", j);
+            printf("%d", aux->vertice);
+            aux = aux->proximo;
+
+            while (aux)
+            {
+                printf("->%d", aux->vertice);
+                aux = aux->proximo;
+            }
         }
         printf("\n");
     }
 }
 
+int dfs_helper(grafo *g, int inicio, int fim, int profundidade, int *visitados)
+{
+    int i, d;
+
+    if(visitados[inicio])
+        return 0;
+
+    visitados[inicio] = profundidade;
+
+    if(inicio == fim)
+        return profundidade;
+
+    for(i=0; i < g->tamanho; i++)
+    {
+        if(grafo_aresta(g, inicio, i))
+        {
+            d = dfs_helper(g, i, fim, profundidade + 1, visitados);
+            if(d)
+                return d;
+        }
+    }
+    visitados[inicio] = 0;
+    return 0;
+}
+
+/* retorna caminho entre origem e dest usando depth-first search (DFS)
+   n guarda o tamanho do caminho
+   nao garante caminho mais curto */
+int* grafo_dfs(grafo *g, int inicio, int fim, int *n)
+{
+    int *visitados, *caminho;
+    int profundidade, i, ret_i;
+
+    if(g==NULL)
+        return 0;
+
+    visitados = calloc(g->tamanho, sizeof(int));
+    profundidade = dfs_helper(g, inicio, fim, 1, visitados);
+
+    if(profundidade == 0)
+    {
+        free(visitados);
+        *n=0;
+        return NULL;
+    }
+
+    /* reconstrucao do caminho */
+    caminho = calloc(profundidade, sizeof(int));
+    for (ret_i = 0; ret_i < profundidade; ret_i++)
+        for (i = 0; i< g->tamanho; i++)
+            if(visitados[i] == ret_i + 1)
+            {
+                caminho[ret_i] = i;
+                break;
+            }
+    *n = profundidade;
+    free(visitados);
+    return caminho;
+}
+
+
+/* retorna caminho entre origem e dest usando breadth-first search (BFS)
+   n guarda o tamanho do caminho
+   garante caminho mais curto */
+int* grafo_bfs(grafo *g, int inicio, int fim, int *n)
+{
+    int *caminho = NULL, *visitados, *fila;
+    int profundidade, i, j, fila_inicio = 0, fila_fim=0;
+
+    if(g==NULL)
+        return 0;
+
+    visitados = calloc(g->tamanho, sizeof(int));
+    fila = calloc(g->tamanho, sizeof(int));
+
+    for(i = 0; i < g->tamanho; i++)
+        visitados[i] = -1;
+
+    visitados[inicio] = inicio;
+    fila[fila_fim++] = inicio;
+
+    while(fila_inicio != fila_fim)
+    {
+        i = fila[fila_inicio];
+        fila_inicio = (fila_inicio + 1) % g->tamanho;
+        for(j = 0; j < g->tamanho; j++)
+            if(grafo_aresta(g, i, j) && visitados[j] == -1)
+            {
+                visitados[j] = i;
+                fila[fila_fim] = j;
+                fila_fim = (fila_fim + 1) % g->tamanho;
+            }
+    }
+
+    /* reconstrucao do caminho */
+    profundidade = 0;
+    if(visitados[fim] >= 0)
+    {
+        int tmp = fim;
+        profundidade = 1;
+        while(visitados[tmp] != tmp)
+        {
+            profundidade++;
+            tmp = visitados[tmp];
+        }
+
+        caminho = malloc(profundidade  * sizeof(int));
+        tmp = fim;
+        i = 0;
+        while(i++ < profundidade)
+        {
+            caminho[profundidade - i] = tmp;
+            tmp = visitados[tmp];
+        }
+    }
+
+    free(fila);
+    free(visitados);
+
+    *n=profundidade;
+    return caminho;
+}
